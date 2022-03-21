@@ -1,4 +1,7 @@
-from typing import Callable, Generator, Hashable, List, NamedTuple, Set
+from collections import Counter
+from itertools import tee
+from math import isinf
+from typing import Callable, Generator, Hashable, List, NamedTuple, Set, Union
 
 
 class Item(NamedTuple):
@@ -19,6 +22,20 @@ class Pair(NamedTuple):
 
     interval: int
     element: Hashable
+
+
+class Pattern(NamedTuple):
+    """Mined pattern
+
+    Attributes:
+        support: count of pattern occcurence
+        whole_interval: interval from begining to the end 
+            based on itemized intervals
+    """
+
+    sequence: List[Pair]
+    support: int
+    whole_interval: int
 
 
 def generate_postfixes(sequence: List[Item],
@@ -82,3 +99,60 @@ def project(projected_db: List[List[List[Item]]], projector: Pair,
             child_projected_db.append(projected_sequences)
 
     return child_projected_db
+
+
+def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
+                     itemize: Callable[[int], int], min_support: int,
+                     min_interval: int, max_interval: Union[int, float],
+                     min_whole_interval: int,
+                     max_whole_interval: Union[int, float]) -> List[Pattern]:
+    """Recursivly mine sub patterns.
+
+    Args:
+        prefix: list of projectors generate during projections
+        min_support (int): minimum count of patterns occurrence
+        min_interval (int): minimum interval between each adjacent items,
+        max_interval (int): maximum interval between each adjacent items
+        min_whole_interval (int): minimum interval from begining to the end, 
+            base on itemized interval (to be updated).
+        max_whole_interval (int): maximum interval from begining to the end, 
+            base on itemized interval (to be updated).
+    """
+
+    def pairwise(iterable):
+        a, b = tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
+    counter = Counter()
+    for sequences in projected_db:
+        pairs = set()
+
+        for sequence in sequences:
+            previous = 0
+            for interval, elements in sequence:
+                if min_interval <= interval - previous <= max_interval:
+                    pairs.update(Pair(itemize(interval), e) for e in elements)
+
+                previous = interval
+
+        counter.update(pairs)
+
+    patterns = []
+    for pair, support in counter.items():
+        whole_interval = sum(i for i, p in prefix) + pair.interval
+        if (support >= min_support
+                and (isinf(max_whole_interval)
+                     or whole_interval <= itemize(max_whole_interval))):
+            child_projected_db = project(projected_db, prefix[-1], itemize)
+
+            patterns.extend(
+                mine_subpatterns(child_projected_db, prefix, itemize,
+                                 min_support, min_interval, max_interval,
+                                 min_whole_interval, max_whole_interval))
+
+            if whole_interval >= itemize(min_whole_interval):
+                patterns.append(
+                    Pattern(prefix + [pair], support, whole_interval))
+
+    return patterns
