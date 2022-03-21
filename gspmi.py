@@ -1,6 +1,7 @@
+from cmath import inf
 from collections import Counter
 from itertools import tee
-from math import isinf
+from math import ceil, isinf
 from typing import Callable, Generator, Hashable, List, NamedTuple, Set, Union
 
 
@@ -111,12 +112,6 @@ def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
     Args:
         prefix: list of projectors generate during projections
         min_support (int): minimum count of patterns occurrence
-        min_interval (int): minimum interval between each adjacent items,
-        max_interval (int): maximum interval between each adjacent items
-        min_whole_interval (int): minimum interval from begining to the end, 
-            base on itemized interval (to be updated).
-        max_whole_interval (int): maximum interval from begining to the end, 
-            base on itemized interval (to be updated).
     """
 
     def pairwise(iterable):
@@ -154,5 +149,57 @@ def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
             if whole_interval >= itemize(min_whole_interval):
                 patterns.append(
                     Pattern(prefix + [pair], support, whole_interval))
+
+    return patterns
+
+
+def mine(sequences: List[List[Item]],
+         itemize: Callable[[int], int],
+         min_support: Union[int, float],
+         min_interval: int = 0,
+         max_interval: int = inf,
+         min_whole_interval: int = 0,
+         max_whole_interval: float = inf):
+    """Run generalized sequential pattern mining with interval algorithm.
+
+    Args:
+        sequences: sequences to mine
+        itemize: itemize function
+        min_support: minimal count (int) of pattern occurence 
+            or percentage (float)
+        min_interval (int): minimum interval between each adjacent items,
+        max_interval (int): maximum interval between each adjacent items
+        min_whole_interval (int): minimum interval from begining to the end, 
+            base on itemized interval (to be updated).
+        max_whole_interval (int): maximum interval from begining to the end, 
+            base on itemized interval (to be updated).
+    """
+    if isinstance(min_support, float):
+        if not 0 <= min_support <= 1:
+            raise ValueError(f'0 <= min_support <= 1 ({min_support=})')
+
+        min_support = ceil(len(sequences) * min_support)
+
+    counter = Counter()
+    for sequence in sequences:
+        elements = set()
+        for item in sequence:
+            elements.update(item.elements)
+
+        counter.update(elements)
+
+    patterns = []
+    for element, support in counter.items():
+        if support >= min_support:
+            pair = Pair(0, element)
+
+            if pair.interval >= min_whole_interval:
+                patterns.append(Pattern([pair], support, 0))
+
+            if (projected_db := project_level1(sequences, pair, itemize)):
+                patterns.extend(
+                    mine_subpatterns(projected_db, [pair], itemize,
+                                     min_support, min_interval, max_interval,
+                                     min_whole_interval, max_whole_interval))
 
     return patterns

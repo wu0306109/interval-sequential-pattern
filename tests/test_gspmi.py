@@ -1,7 +1,7 @@
 from math import inf
 
-from ..gspmi import (Item, Pair, Pattern, generate_postfixes, mine_subpatterns,
-                     project, project_level1)
+from ..gspmi import (Item, Pair, Pattern, generate_postfixes, mine,
+                     mine_subpatterns, project, project_level1)
 
 
 def test_generate_postfixes():
@@ -185,4 +185,34 @@ def test_mine_subpatterns():
     result = mine_subpatterns(projected_db, prefix, itemize, min_support,
                               min_interval, max_interval, min_whole_interval,
                               max_whole_interval)
+    assert sorted(result) == sorted(expected)
+
+
+def test_mine():
+    sequence_db = [
+        [
+            Item(0, {'a'}),
+            Item(86400, {'a', 'b', 'c'}),
+            Item(259200, {'a', 'c'}),
+        ],
+        [
+            Item(0, {'a', 'd'}),
+            Item(259200, {'c'}),
+        ],
+        [
+            Item(0, {'a', 'e', 'f'}),
+            Item(172800, {'a', 'b'}),
+        ],
+    ]
+    itemize = lambda interval: interval // 86400
+    min_support = 0.5
+    max_interval = 172800
+    expected = [
+        Pattern([Pair(0, 'a')], 3, 0),
+        Pattern([Pair(0, 'a'), Pair(0, 'b')], 2, 0),
+        Pattern([Pair(0, 'a'), Pair(2, 'a')], 2, 2),
+        Pattern([Pair(0, 'b')], 2, 0),
+        Pattern([Pair(0, 'c')], 2, 0),
+    ]
+    result = mine(sequence_db, itemize, min_support, max_interval=max_interval)
     assert sorted(result) == sorted(expected)
