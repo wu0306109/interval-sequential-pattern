@@ -113,12 +113,6 @@ def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
         prefix: list of projectors generate during projections
         min_support (int): minimum count of patterns occurrence
     """
-
-    def pairwise(iterable):
-        a, b = tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
     counter = Counter()
     for sequences in projected_db:
         pairs = set()
@@ -139,10 +133,10 @@ def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
         if (support >= min_support
                 and (isinf(max_whole_interval)
                      or whole_interval <= itemize(max_whole_interval))):
-            child_projected_db = project(projected_db, prefix[-1], itemize)
+            child_projected_db = project(projected_db, pair, itemize)
 
             patterns.extend(
-                mine_subpatterns(child_projected_db, prefix, itemize,
+                mine_subpatterns(child_projected_db, prefix + [pair], itemize,
                                  min_support, min_interval, max_interval,
                                  min_whole_interval, max_whole_interval))
 
