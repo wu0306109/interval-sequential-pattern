@@ -1,7 +1,5 @@
-from cmath import inf
 from collections import Counter
-from itertools import tee
-from math import ceil, isinf
+from math import ceil, inf, isinf
 from typing import Callable, Generator, Hashable, List, NamedTuple, Set, Union
 
 
@@ -133,12 +131,12 @@ def mine_subpatterns(projected_db: List[List[List[Item]]], prefix: List[Pair],
         if (support >= min_support
                 and (isinf(max_whole_interval)
                      or whole_interval <= itemize(max_whole_interval))):
-            child_projected_db = project(projected_db, pair, itemize)
-
-            patterns.extend(
-                mine_subpatterns(child_projected_db, prefix + [pair], itemize,
-                                 min_support, min_interval, max_interval,
-                                 min_whole_interval, max_whole_interval))
+            if (child_projected_db := project(projected_db, pair, itemize)):
+                patterns.extend(
+                    mine_subpatterns(child_projected_db, prefix + [pair],
+                                     itemize, min_support, min_interval,
+                                     max_interval, min_whole_interval,
+                                     max_whole_interval))
 
             if whole_interval >= itemize(min_whole_interval):
                 patterns.append(
