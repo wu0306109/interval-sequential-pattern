@@ -1,7 +1,7 @@
 from math import inf, log2
 
-from ..gspmi import (Item, Pair, Pattern, generate_postfixes, mine,
-                     mine_subpatterns, project, project_level1)
+from seqpat.gspmi import (Item, Pair, Pattern, generate_postfixes, mine,
+                          mine_subpatterns, project, project_level1)
 
 
 def test_generate_postfixes():
