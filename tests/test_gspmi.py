@@ -1,6 +1,34 @@
 from math import log2
 
-from seqpat.gspmi import Gspmi, Item, Pair, Pattern
+from seqpat.gspmi import Gspmi, Item, Pair, Pattern, transform
+
+
+def test_transform():
+    a, b, c = 'a', 'b', 'c'
+
+    sequences = [
+        [(0, {a}), (86400, {a, b, c}), (259200, {a, c})],
+        [(0, {a, c}), (259200, {c})],
+        [(0, {a, b, c}), (172800, {a, b})],
+    ]
+    expected = [
+        [
+            Item(0, {a}),
+            Item(86400, {a, b, c}),
+            Item(259200, {a, c}),
+        ],
+        [
+            Item(0, {a, c}),
+            Item(259200, {c}),
+        ],
+        [
+            Item(0, {a, b, c}),
+            Item(172800, {a, b}),
+        ],
+    ]
+
+    result = transform(sequences)
+    assert result == expected
 
 
 class TestGspmi:
@@ -113,3 +141,24 @@ class TestGspmi:
             count = sum(match_sequence(pattern, s) for s in sequences)
 
             assert count == pattern.support
+
+    def test_auto_transform(self):
+        a, b, c, d, e, f = 'a', 'b', 'c', 'd', 'e', 'f'
+        sequences = [
+            [(0, {a}), (86400, {a, b, c}), (259200, {a, c})],
+            [(0, {a, d}), (259200, {c})],
+            [(0, {a, e, f}), (172800, {a, b})],
+        ]
+        gspmi = Gspmi(itemize=lambda i: i // 86400,
+                      min_support=2,
+                      max_interval=172800)
+        expected = [
+            Pattern([Pair(0, 'a')], 3, 0),
+            Pattern([Pair(0, 'b')], 2, 0),
+            Pattern([Pair(0, 'c')], 2, 0),
+            Pattern([Pair(0, 'a'), Pair(0, 'b')], 2, 0),
+            Pattern([Pair(0, 'a'), Pair(2, 'a')], 2, 2),
+        ]
+
+        result = gspmi.mine_patterns(sequences)
+        assert sorted(result) == sorted(expected)

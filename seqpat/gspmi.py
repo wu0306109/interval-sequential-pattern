@@ -1,6 +1,6 @@
 from collections import Counter
 from math import inf, isinf
-from typing import Generator, Hashable, List, NamedTuple, Set
+from typing import Generator, Hashable, List, NamedTuple, Set, Tuple, Union
 
 from seqpat.itemizes import Itemize
 
@@ -39,6 +39,17 @@ class Pattern(NamedTuple):
     whole_interval: int
 
 
+_BuildInSequence = List[Tuple[int, Set[Hashable]]]
+_Sequence = List[Item]
+
+
+def transform(sequences: List[_BuildInSequence]) -> List[List[Item]]:
+    """Transform sequences with Python build-in types
+    to fit the format using by GSPMI."""
+    return [[Item(interval, elements) for interval, elements in sequence]
+            for sequence in sequences]
+
+
 class Gspmi:
     """Algorithm object for 
     Generailized Sequential Pattern Mining with Interval.
@@ -70,7 +81,7 @@ class Gspmi:
 
     def _generate_postfixes(
             self,
-            sequence: List[Item],
+            sequence: _Sequence,
             projector: Pair,
             level1: bool = False) -> Generator[Item, None, None]:
         """Yield postfixs according to projector.
@@ -97,7 +108,7 @@ class Gspmi:
                 if not level1:
                     break
 
-    def _project_level1(self, sequences: List[List[Item]],
+    def _project_level1(self, sequences: List[_Sequence],
                         projector: Pair) -> List[List[List[Item]]]:
         """Project from initial sequence database.
 
@@ -113,8 +124,8 @@ class Gspmi:
 
         return projected_db
 
-    def _project(self, projected_db: List[List[List[Item]]],
-                 projector: Pair) -> List[List[List[Item]]]:
+    def _project(self, projected_db: List[List[_Sequence]],
+                 projector: Pair) -> List[List[_Sequence]]:
         """Project projected database to the next level by projector."""
         child_projected_db = []
         for sequences in projected_db:
@@ -131,7 +142,7 @@ class Gspmi:
 
         return child_projected_db
 
-    def _mine_subpatterns(self, projected_db: List[List[List[Item]]],
+    def _mine_subpatterns(self, projected_db: List[List[_Sequence]],
                           prefix: List[Pair]) -> List[Pattern]:
         """Recursivly mine sub patterns.
 
@@ -171,8 +182,16 @@ class Gspmi:
 
         return patterns
 
-    def mine_patterns(self, sequences: List[List[Item]]) -> List[Pattern]:
-        """Run the algorithm and mine patterns."""
+    def mine_patterns(
+        self, sequences: Union[List[_Sequence], List[_BuildInSequence]]
+    ) -> List[Pattern]:
+        """Run the algorithm and mine patterns.
+        
+        Transform sequences if passing with build-in types.
+        """
+        if len(sequences) > 0 and not isinstance(sequences[0][0], Item):
+            sequences = transform(sequences)
+
         counter = Counter()
         for sequence in sequences:
             elements = set()
