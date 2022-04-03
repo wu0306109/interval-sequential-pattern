@@ -1,9 +1,10 @@
 from collections import Counter
 from math import inf, isinf
-from typing import Generator, Hashable, List, NamedTuple, Set, Tuple, Union
 from multiprocessing import Pool
+from typing import (Callable, Generator, Hashable, List, NamedTuple, Set,
+                    Tuple, Union)
 
-from seqpat.itemizes import Itemize
+_Itemize = Callable[[int], int]
 
 
 class Item(NamedTuple):
@@ -73,7 +74,7 @@ class Gspmi:
     """
 
     def __init__(self,
-                 itemize: Itemize,
+                 itemize: _Itemize,
                  min_support: int,
                  min_interval: int = 0,
                  max_interval: int = inf,
