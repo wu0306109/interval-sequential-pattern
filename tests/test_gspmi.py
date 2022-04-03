@@ -31,6 +31,10 @@ def test_transform():
     assert result == expected
 
 
+def _itemize(t):
+    return t // 86400
+
+
 class TestGspmi:
 
     def test_basic_mine_patterns(self):
@@ -152,6 +156,29 @@ class TestGspmi:
         gspmi = Gspmi(itemize=lambda i: i // 86400,
                       min_support=2,
                       max_interval=172800)
+        expected = [
+            Pattern([Pair(0, 'a')], 3, 0),
+            Pattern([Pair(0, 'b')], 2, 0),
+            Pattern([Pair(0, 'c')], 2, 0),
+            Pattern([Pair(0, 'a'), Pair(0, 'b')], 2, 0),
+            Pattern([Pair(0, 'a'), Pair(2, 'a')], 2, 2),
+        ]
+
+        result = gspmi.mine_patterns(sequences)
+        assert sorted(result) == sorted(expected)
+
+    def test_multiprocessing_mine_patterns(self):
+
+        a, b, c, d, e, f = 'a', 'b', 'c', 'd', 'e', 'f'
+        sequences = [
+            [(0, {a}), (86400, {a, b, c}), (259200, {a, c})],
+            [(0, {a, d}), (259200, {c})],
+            [(0, {a, e, f}), (172800, {a, b})],
+        ]
+        gspmi = Gspmi(itemize=_itemize,
+                      min_support=2,
+                      max_interval=172800,
+                      multiprocessing=True)
         expected = [
             Pattern([Pair(0, 'a')], 3, 0),
             Pattern([Pair(0, 'b')], 2, 0),

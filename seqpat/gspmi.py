@@ -1,6 +1,7 @@
 from collections import Counter
 from math import inf, isinf
 from typing import Generator, Hashable, List, NamedTuple, Set, Tuple, Union
+from multiprocessing import Pool
 
 from seqpat.itemizes import Itemize
 
@@ -56,13 +57,19 @@ class Gspmi:
 
     Attributes:
         itemize: itemize function
-        min_support: minimal count (int) of pattern occurence.
-        min_interval (int): minimum interval between each adjacent items
-        max_interval (int): maximum interval between each adjacent items
-        min_whole_interval (int): minimum interval from begining to the end, 
+        min_support: minimal count of pattern occurence.
+        min_interval: minimum interval between each adjacent items
+        max_interval: maximum interval between each adjacent items
+        min_whole_interval: minimum interval from begining to the end, 
             base on itemized interval (to be updated)
-        max_whole_interval (int): maximum interval from begining to the end, 
+        max_whole_interval: maximum interval from begining to the end, 
             base on itemized interval (to be updated).
+        multiprocessing: whether to run with multiprocessing, if ture, 
+            inputed itemize must be picklizeable, please refer: 
+            https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled
+        n_processes: number of worker processes to use 
+            (valid only when multiprocessing is true). If processes 
+            is None then the number returned by os.cpu_count() is used.
     """
 
     def __init__(self,
@@ -71,13 +78,18 @@ class Gspmi:
                  min_interval: int = 0,
                  max_interval: int = inf,
                  min_whole_interval: int = 0,
-                 max_whole_interval: int = inf):
+                 max_whole_interval: int = inf,
+                 multiprocessing: bool = False,
+                 n_processes: int = None):
         self.itemize = itemize
         self.min_support = min_support
         self.min_interval = min_interval
         self.max_interval = max_interval
         self.min_whole_interval = min_whole_interval
         self.max_whole_interval = max_whole_interval
+
+        self.multiprocessing = multiprocessing
+        self.n_processes = n_processes
 
     def _generate_postfixes(
             self,
@@ -182,6 +194,21 @@ class Gspmi:
 
         return patterns
 
+    def _mine_subpatterns_level1(self, sequences: List[_Sequence],
+                                 element: Hashable,
+                                 support: int) -> List[Pattern]:
+        patterns = []
+
+        if support >= self.min_support:
+            pair = Pair(0, element)
+            if pair.interval >= self.min_whole_interval:
+                patterns.append(Pattern([pair], support, 0))
+
+            projected_db = self._project_level1(sequences, pair)
+            patterns.extend(self._mine_subpatterns(projected_db, [pair]))
+
+        return patterns
+
     def mine_patterns(
         self, sequences: Union[List[_Sequence], List[_BuildInSequence]]
     ) -> List[Pattern]:
@@ -201,15 +228,21 @@ class Gspmi:
             counter.update(elements)
 
         patterns = []
-        for element, support in counter.items():
-            if support >= self.min_support:
-                pair = Pair(0, element)
 
-                if pair.interval >= self.min_whole_interval:
-                    patterns.append(Pattern([pair], support, 0))
+        if not self.multiprocessing:
+            for element, support in counter.items():
+                subpatterns = self._mine_subpatterns_level1(
+                    sequences, element, support)
+                patterns.extend(subpatterns)
+        else:
+            results = []
+            with Pool(self.n_processes) as pool:
+                for element, support in counter.items():
+                    result = pool.apply_async(self._mine_subpatterns_level1,
+                                              (sequences, element, support))
+                    results.append(result)
 
-                if (projected_db := self._project_level1(sequences, pair)):
-                    patterns.extend(
-                        self._mine_subpatterns(projected_db, [pair]))
+                for result in results:
+                    patterns.extend(result.get())
 
         return patterns
