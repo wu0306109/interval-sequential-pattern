@@ -3,6 +3,8 @@
 ## Quick Start
 
 ```python
+from intseqpat.gspmi import Gspmi
+
 a, b, c, d, e, f = 'a', 'b', 'c', 'd', 'e', 'f'
 sequences = [
     [(0, {a}), (86400, {a, b, c}), (259200, {a, c})],
