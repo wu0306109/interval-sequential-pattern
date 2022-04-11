@@ -1,6 +1,6 @@
 from math import log2
 
-from seqpat.gspmi import Gspmi, Item, Pair, Pattern, transform
+from intseqpat.gspmi import Gspmi, Item, Pair, Pattern, transform
 
 
 def test_transform():
