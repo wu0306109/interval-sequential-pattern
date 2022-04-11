@@ -1,5 +1,14 @@
 # Interval-extended Sequence Pattern Mining Library
 
+## Installation
+
+Come to [Releases](https://github.com/wu0306109/interval-sequential-pattern/releases) first to download a version and decompress it.
+
+```bash
+cd interval-sequential-pattern-x.x.x
+python3 -m pip install .
+```
+
 ## Quick Start
 
 ```python
