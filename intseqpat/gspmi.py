@@ -3,13 +3,15 @@ from math import inf, isinf
 from multiprocessing import Pool
 from typing import (Callable, Generator, Hashable, List, NamedTuple, Set,
                     Tuple, Union)
+from grpc import Call
+import pandas as pd
 
 _Itemize = Callable[[int], int]
 
 
 class Item(NamedTuple):
     """Item of sequence.
-    
+
     interval: interval from zero without itemize transformation
     """
 
@@ -214,7 +216,7 @@ class Gspmi:
         self, sequences: Union[List[_Sequence], List[_BuildInSequence]]
     ) -> List[Pattern]:
         """Run the algorithm and mine patterns.
-        
+
         Transform sequences if passing with build-in types.
         """
         if len(sequences) > 0 and not isinstance(sequences[0][0], Item):
@@ -247,3 +249,99 @@ class Gspmi:
                     patterns.extend(result.get())
 
         return patterns
+
+
+class Item:
+    """Item of input interval seqences.
+
+    Attributes:
+        interval: Interval from first item (without itemize transformation).
+        elements: Elements of the item.
+    """
+
+    def __init__(self, interval: int, elements: Set[str]) -> None:
+        pass
+
+
+class Pair:
+    """Pair including interval and element of output pattern.
+
+    Attributes:
+        interval: Interval from previous pair (after itemize transformation).
+        elements: Element of the pair.
+    """
+
+    def __init__(self, interval: int, element: str) -> None:
+        pass
+
+
+def transform(sequences: List[Tuple[int, Set[Hashable]]]) -> List[List[Item]]:
+    """Transform sequences to defined classes for following calculations of GSPMI.
+
+    Args:
+        sequences: Input sequences for GSPMI.
+
+    Returns:
+        Transformed sequences with defined class Item.
+    """
+    pass
+
+
+def gspmi(sequences: Union[List[List[Item]], List[Tuple[int, Set[Hashable]]]],
+          itemize: Callable[[int], int],
+          min_support: Union[float, int],
+          min_interval: int = 0,
+          max_interval: int = inf,
+          min_whole_interval: int = 0,
+          max_whole_interval: int = inf) -> pd.DataFrame:
+    """Apply algorithm on sequences to find interval sequential patterns.
+
+    For four types of constrains (min/max interval and min/max whole interval),
+    the unit is same as input sequences.
+
+    Args:
+        sequences: Sequences to mine, transform if in Tuple type.
+        itemize: Itemize function to merge a interval to same item.
+        min_support: Minimal support to mine pattern.
+            If value is in float range from zero to one,
+            transform to number according to the size of sequences.
+        min_interval: Minimal interval between each pair of pattern.
+        max_interval: Maximum interval between each pair of pattern.
+        min_whole_interval: Minimal interval from the first to the last pair.
+        max_whole_interval: Maximum interval from the first to the last pair.
+
+    Returns:
+        Pandas DataFrame with columns:
+        1. sequence: The interval sequential pattern.
+        2. support: Number of sequences the pattern exists.
+        3. count: Number of places the pattern exists.
+        3. whole_interval: the interval from the first to the last pair.
+    """
+    pass
+
+
+def generate_postfixes(sequence: List[Item],
+                       projector: str) -> List[List[Item]]:
+    """Find projector in each place of sequence and generate postfix.
+
+    Args:
+        projector (str): The element to match.
+    """
+    pass
+
+
+def postfix(sequence: List[Item], projector: Pair,
+            itemize: Callable[[int], int]) -> List[Item]:
+    """Generate postfix according to sequence and projector.
+
+    Args:
+        projector (Pair): The pair to match.
+    """
+    pass
+
+
+def project(sequences: pd.Series, itemize: Callable[[int], int],
+            min_support: int, min_interval: int, max_interval: int,
+            min_whole_interval: int, max_whole_interval: int) -> pd.DataFrame:
+    """Apply algorithm on sequences after postfixes generating."""
+    pass

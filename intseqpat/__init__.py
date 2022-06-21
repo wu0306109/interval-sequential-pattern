@@ -1,1 +1,1 @@
-from . import gspmi
+from .gspmi import gspmi
